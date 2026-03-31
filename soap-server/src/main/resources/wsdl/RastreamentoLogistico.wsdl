@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ============================================================================
+  WSDL CONTRACT-FIRST — Sistema de Rastreamento Logístico
+  ============================================================================
+
+  Abordagem: Contract-First (WSDL-First)
+  O contrato é definido ANTES do código Java. A implementação deve respeitar
+  exatamente os tipos e operações declarados aqui.
+
+  Vantagens sobre Contract-Last (code-first):
+  - Contrato estável: clientes não são afetados por refatorações internas
+  - Tipos XSD precisos e reutilizáveis
+  - Melhor interoperabilidade com .NET, Python, PHP
+  - Permite que equipes distintas desenvolvam cliente/servidor em paralelo
+
+  Binding: DOCUMENT/LITERAL (WS-I Basic Profile 1.1 compliant)
+  Namespace: http://logistica.com/ws
+  ============================================================================
+-->
+<definitions
+    xmlns="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:tns="http://logistica.com/ws"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://logistica.com/ws"
+    name="RastreamentoLogisticoService">
+
+    <!-- ======================================================================
+         SEÇÃO 1: TYPES
+         Define todos os tipos de dados via XSD inline.
+         Em projetos maiores, o XSD pode ser externalizado em arquivo separado
+         e importado com <xsd:import schemaLocation="tipos.xsd"/>
+    ====================================================================== -->
+    <types>
+        <xsd:schema targetNamespace="http://logistica.com/ws"
+                    elementFormDefault="qualified"
+                    attributeFormDefault="unqualified">
+
+            <!-- ============================================================
+                 ENUMERAÇÃO: StatusPedido
+                 Restringe os valores aceitos pelo campo status.
+            ============================================================ -->
+            <xsd:simpleType name="StatusPedido">
+                <xsd:restriction base="xsd:string">
+                    <xsd:enumeration value="AGUARDANDO_COLETA"/>
+                    <xsd:enumeration value="COLETADO"/>
+                    <xsd:enumeration value="EM_TRANSITO"/>
+                    <xsd:enumeration value="EM_SEPARACAO"/>
+                    <xsd:enumeration value="SAIU_PARA_ENTREGA"/>
+                    <xsd:enumeration value="ENTREGUE"/>
+                    <xsd:enumeration value="TENTATIVA_ENTREGA"/>
+                    <xsd:enumeration value="DEVOLVIDO"/>
+                    <xsd:enumeration value="EXTRAVIADO"/>
+                    <xsd:enumeration value="CANCELADO"/>
+                </xsd:restriction>
+            </xsd:simpleType>
+
+            <!-- ============================================================
+                 TIPO COMPLEXO: Endereco
+            ============================================================ -->
+            <xsd:complexType name="Endereco">
+                <xsd:sequence>
+                    <xsd:element name="logradouro"   type="xsd:string"  minOccurs="1"/>
+                    <xsd:element name="numero"        type="xsd:string"  minOccurs="1"/>
+                    <xsd:element name="complemento"   type="xsd:string"  minOccurs="0"/>
+                    <xsd:element name="bairro"         type="xsd:string"  minOccurs="1"/>
+                    <xsd:element name="cidade"         type="xsd:string"  minOccurs="1"/>
+                    <xsd:element name="estado">
+                        <!-- UF com exatamente 2 caracteres -->
+                        <xsd:simpleType>
+                            <xsd:restriction base="xsd:string">
+                                <xsd:length value="2"/>
+                                <xsd:pattern value="[A-Z]{2}"/>
+                            </xsd:restriction>
+                        </xsd:simpleType>
+                    </xsd:element>
+                    <xsd:element name="cep">
+                        <!-- CEP no formato 00000-000 ou 00000000 -->
+                        <xsd:simpleType>
+                            <xsd:restriction base="xsd:string">
+                                <xsd:pattern value="\d{5}-?\d{3}"/>
+                            </xsd:restriction>
+                        </xsd:simpleType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <!-- ============================================================
+                 TIPO COMPLEXO: EventoRastreamento
+                 Um evento no histórico de movimentação do pedido.
+            ============================================================ -->
+            <xsd:complexType name="EventoRastreamento">
+                <xsd:sequence>
+                    <xsd:element name="dataHora"    type="xsd:string"      minOccurs="1"/>
+                    <xsd:element name="status"       type="xsd:string"      minOccurs="1"/>
+                    <xsd:element name="descricao"    type="xsd:string"      minOccurs="1"/>
+                    <xsd:element name="localidade"   type="xsd:string"      minOccurs="1"/>
+                    <xsd:element name="responsavel"  type="xsd:string"      minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <!-- ============================================================
+                 TIPO COMPLEXO: Pedido
+                 Entidade principal do sistema.
+            ============================================================ -->
+            <xsd:complexType name="Pedido">
+                <xsd:sequence>
+                    <xsd:element name="codigoRastreio"    type="xsd:string"           minOccurs="1"/>
+                    <xsd:element name="nomeRemetente"     type="xsd:string"           minOccurs="1"/>
+                    <xsd:element name="nomeDestinatario"  type="xsd:string"           minOccurs="1"/>
+                    <xsd:element name="enderecoOrigem"    type="tns:Endereco"         minOccurs="1"/>
+                    <xsd:element name="enderecoDestino"   type="tns:Endereco"         minOccurs="1"/>
+                    <xsd:element name="descricaoConteudo" type="xsd:string"           minOccurs="0"/>
+                    <xsd:element name="pesoKg"            type="xsd:double"           minOccurs="1"/>
+                    <xsd:element name="valorDeclarado"    type="xsd:double"           minOccurs="0"/>
+                    <xsd:element name="statusAtual"       type="xsd:string"           minOccurs="1"/>
+                    <xsd:element name="dataCriacao"       type="xsd:string"           minOccurs="0"/>
+                    <xsd:element name="previsaoEntrega"   type="xsd:string"           minOccurs="0"/>
+                    <xsd:element name="historico"         minOccurs="0">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="evento" type="tns:EventoRastreamento"
+                                             minOccurs="0" maxOccurs="unbounded"/>
+                            </xsd:sequence>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <!-- ============================================================
+                 TIPO COMPLEXO: LogisticaFault
+                 Estrutura do SOAP Fault customizado.
+            ============================================================ -->
+            <xsd:complexType name="LogisticaFault">
+                <xsd:sequence>
+                    <xsd:element name="codigoErro"       type="xsd:string"/>
+                    <xsd:element name="mensagem"          type="xsd:string"/>
+                    <xsd:element name="mensagemTecnica"   type="xsd:string" minOccurs="0"/>
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <!-- ================================================================
+                 ELEMENTOS DE MENSAGEM — Cada operação tem Request e Response
+                 Padrão DOCUMENT/LITERAL exige um wrapper element por mensagem.
+            ================================================================ -->
+
+            <!-- criarPedido -->
+            <xsd:element name="criarPedidoRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="nomeRemetente"     type="xsd:string"/>
+                        <xsd:element name="nomeDestinatario"  type="xsd:string"/>
+                        <xsd:element name="enderecoOrigem"    type="tns:Endereco"/>
+                        <xsd:element name="enderecoDestino"   type="tns:Endereco"/>
+                        <xsd:element name="descricaoConteudo" type="xsd:string"  minOccurs="0"/>
+                        <xsd:element name="pesoKg"            type="xsd:double"/>
+                        <xsd:element name="valorDeclarado"    type="xsd:double"  minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="criarPedidoResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="codigoRastreio" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- rastrearPedido -->
+            <xsd:element name="rastrearPedidoRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="codigoRastreio" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="rastrearPedidoResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="pedido" type="tns:Pedido"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- atualizarStatus -->
+            <xsd:element name="atualizarStatusRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="codigoRastreio" type="xsd:string"/>
+                        <xsd:element name="novoStatus"      type="tns:StatusPedido"/>
+                        <xsd:element name="descricao"       type="xsd:string"/>
+                        <xsd:element name="localidade"      type="xsd:string"/>
+                        <xsd:element name="responsavel"     type="xsd:string" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="atualizarStatusResponse">
+                <xsd:complexType>
+                    <xsd:sequence/>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- cancelarPedido -->
+            <xsd:element name="cancelarPedidoRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="codigoRastreio" type="xsd:string"/>
+                        <xsd:element name="motivo"          type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="cancelarPedidoResponse">
+                <xsd:complexType>
+                    <xsd:sequence/>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- calcularFrete -->
+            <xsd:element name="calcularFreteRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="pesoKg"        type="xsd:double"/>
+                        <xsd:element name="estadoOrigem"  type="xsd:string"/>
+                        <xsd:element name="estadoDestino" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="calcularFreteResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="valorFrete" type="xsd:double"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- listarPedidos -->
+            <xsd:element name="listarPedidosRequest">
+                <xsd:complexType>
+                    <xsd:sequence/>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="listarPedidosResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="pedidos" type="tns:Pedido"
+                                     minOccurs="0" maxOccurs="unbounded"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <!-- Fault compartilhado por todas as operações -->
+            <xsd:element name="LogisticaFault" type="tns:LogisticaFault"/>
+
+        </xsd:schema>
+    </types>
+
+    <!-- ======================================================================
+         SEÇÃO 2: MESSAGES
+         Associa cada elemento XSD a uma mensagem WSDL nomeada.
+    ====================================================================== -->
+    <message name="criarPedidoInput">
+        <part name="parameters" element="tns:criarPedidoRequest"/>
+    </message>
+    <message name="criarPedidoOutput">
+        <part name="parameters" element="tns:criarPedidoResponse"/>
+    </message>
+
+    <message name="rastrearPedidoInput">
+        <part name="parameters" element="tns:rastrearPedidoRequest"/>
+    </message>
+    <message name="rastrearPedidoOutput">
+        <part name="parameters" element="tns:rastrearPedidoResponse"/>
+    </message>
+
+    <message name="atualizarStatusInput">
+        <part name="parameters" element="tns:atualizarStatusRequest"/>
+    </message>
+    <message name="atualizarStatusOutput">
+        <part name="parameters" element="tns:atualizarStatusResponse"/>
+    </message>
+
+    <message name="cancelarPedidoInput">
+        <part name="parameters" element="tns:cancelarPedidoRequest"/>
+    </message>
+    <message name="cancelarPedidoOutput">
+        <part name="parameters" element="tns:cancelarPedidoResponse"/>
+    </message>
+
+    <message name="calcularFreteInput">
+        <part name="parameters" element="tns:calcularFreteRequest"/>
+    </message>
+    <message name="calcularFreteOutput">
+        <part name="parameters" element="tns:calcularFreteResponse"/>
+    </message>
+
+    <message name="listarPedidosInput">
+        <part name="parameters" element="tns:listarPedidosRequest"/>
+    </message>
+    <message name="listarPedidosOutput">
+        <part name="parameters" element="tns:listarPedidosResponse"/>
+    </message>
+
+    <!-- Mensagem de fault reutilizada por todas as operações -->
+    <message name="LogisticaFaultMessage">
+        <part name="fault" element="tns:LogisticaFault"/>
+    </message>
+
+    <!-- ======================================================================
+         SEÇÃO 3: PORT TYPE (interface abstrata)
+         Define QUAIS operações existem e QUAIS mensagens trocam.
+         Independente de protocolo (não menciona SOAP aqui).
+    ====================================================================== -->
+    <portType name="RastreamentoLogistico">
+
+        <operation name="criarPedido">
+            <documentation>
+                Registra um novo pedido no sistema logístico.
+                Retorna o código de rastreio gerado automaticamente.
+            </documentation>
+            <input  message="tns:criarPedidoInput"/>
+            <output message="tns:criarPedidoOutput"/>
+            <fault  name="LogisticaFault" message="tns:LogisticaFaultMessage"/>
+        </operation>
+
+        <operation name="rastrearPedido">
+            <documentation>
+                Consulta o status atual e o histórico completo de um pedido
+                a partir do seu código de rastreio.
+            </documentation>
+            <input  message="tns:rastrearPedidoInput"/>
+            <output message="tns:rastrearPedidoOutput"/>
+            <fault  name="LogisticaFault" message="tns:LogisticaFaultMessage"/>
+        </operation>
+
+        <operation name="atualizarStatus">
+            <documentation>
+                Atualiza o status de um pedido e registra o evento no histórico.
+                Não permitido para pedidos ENTREGUE ou CANCELADO.
+            </documentation>
+            <input  message="tns:atualizarStatusInput"/>
+            <output message="tns:atualizarStatusOutput"/>
+            <fault  name="LogisticaFault" message="tns:LogisticaFaultMessage"/>
+        </operation>
+
+        <operation name="cancelarPedido">
+            <documentation>
+                Cancela um pedido. Só é permitido se o pedido ainda não foi entregue.
+            </documentation>
+            <input  message="tns:cancelarPedidoInput"/>
+            <output message="tns:cancelarPedidoOutput"/>
+            <fault  name="LogisticaFault" message="tns:LogisticaFaultMessage"/>
+        </operation>
+
+        <operation name="calcularFrete">
+            <documentation>
+                Calcula o valor estimado do frete com base no peso e
+                nos estados de origem e destino.
+            </documentation>
+            <input  message="tns:calcularFreteInput"/>
+            <output message="tns:calcularFreteOutput"/>
+            <fault  name="LogisticaFault" message="tns:LogisticaFaultMessage"/>
+        </operation>
+
+        <operation name="listarPedidos">
+            <documentation>
+                Retorna todos os pedidos cadastrados no sistema.
+            </documentation>
+            <input  message="tns:listarPedidosInput"/>
+            <output message="tns:listarPedidosOutput"/>
+        </operation>
+
+    </portType>
+
+    <!-- ======================================================================
+         SEÇÃO 4: BINDING
+         Especifica COMO as mensagens são transportadas (SOAP 1.1 aqui).
+         Aqui entra o estilo DOCUMENT/LITERAL.
+    ====================================================================== -->
+    <binding name="RastreamentoLogisticoBinding" type="tns:RastreamentoLogistico">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+        <operation name="criarPedido">
+            <soap:operation soapAction="http://logistica.com/ws/criarPedido"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+            <fault name="LogisticaFault">
+                <soap:fault name="LogisticaFault" use="literal"/>
+            </fault>
+        </operation>
+
+        <operation name="rastrearPedido">
+            <soap:operation soapAction="http://logistica.com/ws/rastrearPedido"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+            <fault name="LogisticaFault">
+                <soap:fault name="LogisticaFault" use="literal"/>
+            </fault>
+        </operation>
+
+        <operation name="atualizarStatus">
+            <soap:operation soapAction="http://logistica.com/ws/atualizarStatus"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+            <fault name="LogisticaFault">
+                <soap:fault name="LogisticaFault" use="literal"/>
+            </fault>
+        </operation>
+
+        <operation name="cancelarPedido">
+            <soap:operation soapAction="http://logistica.com/ws/cancelarPedido"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+            <fault name="LogisticaFault">
+                <soap:fault name="LogisticaFault" use="literal"/>
+            </fault>
+        </operation>
+
+        <operation name="calcularFrete">
+            <soap:operation soapAction="http://logistica.com/ws/calcularFrete"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+            <fault name="LogisticaFault">
+                <soap:fault name="LogisticaFault" use="literal"/>
+            </fault>
+        </operation>
+
+        <operation name="listarPedidos">
+            <soap:operation soapAction="http://logistica.com/ws/listarPedidos"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+        </operation>
+
+    </binding>
+
+    <!-- ======================================================================
+         SEÇÃO 5: SERVICE
+         Define o endereço físico onde o serviço está disponível.
+         Este é o único lugar onde a URL aparece — facilita troca de ambiente.
+    ====================================================================== -->
+    <service name="RastreamentoLogisticoService">
+        <documentation>
+            Serviço SOAP de rastreamento logístico.
+            Permite criar pedidos, rastrear encomendas, atualizar status,
+            cancelar pedidos e calcular fretes.
+        </documentation>
+        <port name="RastreamentoLogisticoPort" binding="tns:RastreamentoLogisticoBinding">
+            <soap:address location="http://localhost:8080/logistica/rastreamento"/>
+        </port>
+    </service>
+
+</definitions>

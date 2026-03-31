@@ -1,0 +1,9 @@
+C:\Users\giuli\Downloads\logistica-cp1\logistica-soap\soap-server\src\main\java\br\com\logistica\config\ServidorSoap.java
+C:\Users\giuli\Downloads\logistica-cp1\logistica-soap\soap-server\src\main\java\br\com\logistica\endpoint\RastreamentoEndpoint.java
+C:\Users\giuli\Downloads\logistica-cp1\logistica-soap\soap-server\src\main\java\br\com\logistica\exception\LogisticaException.java
+C:\Users\giuli\Downloads\logistica-cp1\logistica-soap\soap-server\src\main\java\br\com\logistica\model\Endereco.java
+C:\Users\giuli\Downloads\logistica-cp1\logistica-soap\soap-server\src\main\java\br\com\logistica\model\EventoRastreamento.java
+C:\Users\giuli\Downloads\logistica-cp1\logistica-soap\soap-server\src\main\java\br\com\logistica\model\Pedido.java
+C:\Users\giuli\Downloads\logistica-cp1\logistica-soap\soap-server\src\main\java\br\com\logistica\model\StatusPedido.java
+C:\Users\giuli\Downloads\logistica-cp1\logistica-soap\soap-server\src\main\java\br\com\logistica\repository\PedidoRepository.java
+C:\Users\giuli\Downloads\logistica-cp1\logistica-soap\soap-server\src\main\java\br\com\logistica\service\RastreamentoService.java

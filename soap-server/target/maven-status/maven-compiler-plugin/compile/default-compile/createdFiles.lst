@@ -1,0 +1,10 @@
+br\com\logistica\exception\LogisticaException.class
+br\com\logistica\model\Pedido$Builder.class
+br\com\logistica\model\Endereco.class
+br\com\logistica\model\Pedido.class
+br\com\logistica\endpoint\RastreamentoEndpoint.class
+br\com\logistica\model\EventoRastreamento.class
+br\com\logistica\config\ServidorSoap.class
+br\com\logistica\service\RastreamentoService.class
+br\com\logistica\repository\PedidoRepository.class
+br\com\logistica\model\StatusPedido.class
