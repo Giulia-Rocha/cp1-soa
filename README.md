@@ -26,3 +26,7 @@ mvn exec:java -Dexec.mainClass="br.com.logistica.client.ClienteLogisticaMain"
 **WSDL:** http://localhost:8080/logistica/rastreamento?wsdl
 
 📄 Veja `docs/README.md` para documentação completa.
+
+## Autora
+### Giulia Rocha Barbizan Alves - RM 558084
+[Link Video Demonstrativo](https://drive.google.com/file/d/1CLONn5aDvhQxzF1ulcLhgpie7yTCieq4/view?usp=sharing)
