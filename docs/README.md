@@ -273,19 +273,4 @@ mvn exec:java -Dexec.mainClass="br.com.logistica.client.ClienteLogisticaMain"
 | wsgen                   | 4.0 | Geração do WSDL a partir do código |
 | Postman                 | 5.7+ | Testes manuais das operações |
 
----
 
-## 👥 Grupo
-
-| Nome | Responsabilidade |
-|---|---|
-| Membro 1 | Modelo de dados (Pedido, Endereco, EventoRastreamento) |
-| Membro 2 | Repository e dados de teste |
-| Membro 3 | Service layer e regras de negócio |
-| Membro 4 | Endpoint JAX-WS e SOAP Faults |
-| Membro 5 | Cliente (wsimport + ClienteLogisticaMain) |
-| Membro 6 | Documentação, README e vídeo explicativo |
-
----
-
-*Desenvolvido para a disciplina de Integração de Sistemas — Java 21 + JAX-WS*
